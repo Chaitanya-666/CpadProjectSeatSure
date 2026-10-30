@@ -1,0 +1,26 @@
+# Node
+node_modules/
+npm-debug.log*
+coverage/
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+.idea/
+
+# Android signing
+*.jks
+*.keystore
+key.properties
+
+# Editors / OS
+.vscode/
+.DS_Store
