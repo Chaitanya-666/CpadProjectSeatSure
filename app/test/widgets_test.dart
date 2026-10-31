@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:seatsure/main.dart';
 import 'package:seatsure/models/models.dart';
 import 'package:seatsure/screens/login_screen.dart';
 import 'package:seatsure/screens/my_bookings_screen.dart';
@@ -60,5 +61,31 @@ void main() {
     expect(find.text('No-show, released'), findsOneWidget);
     expect(find.byType(TextButton), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
+  });
+
+  // Regression: logging out used to crash with "Null check operator used on a
+  // null value" because tabs rebuilt once with user == null (found on the
+  // emulator, 2026-10-31).
+  testWidgets('logging out from the home screen returns to login without errors', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'token': 'expired-or-not, the test server answers 400',
+      'user': '{"id":1,"name":"Chaitanya Shinde","email":"c@x.app","role":"student"}',
+    });
+    final session = Session(await SharedPreferences.getInstance());
+    await tester.pumpWidget(MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: session),
+        ChangeNotifierProvider(create: (_) => BookingsModel(session.api)),
+      ],
+      child: const SeatSureApp(),
+    ));
+    await session.restore();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Hi Chaitanya'), findsOneWidget);
+
+    await session.logout();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Log in'), findsOneWidget);
   });
 }

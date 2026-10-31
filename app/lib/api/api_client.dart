@@ -23,6 +23,10 @@ class ApiClient {
 
   String baseUrl;
   String? token;
+
+  /// Called when a request made with a token comes back 401 (token expired
+  /// or account deleted), so the app can log out instead of showing errors.
+  void Function()? onUnauthorized;
   final http.Client _http = http.Client();
 
   static const _timeout = Duration(seconds: 60);
@@ -60,6 +64,7 @@ class ApiClient {
     } on FormatException {
       throw ApiException(res.statusCode, 'bad_response', 'The server sent something unexpected (HTTP ${res.statusCode}).');
     }
+    if (res.statusCode == 401 && token != null) onUnauthorized?.call();
     if (res.statusCode >= 400) {
       final err = body['error'] as Map<String, dynamic>? ?? {};
       throw ApiException(

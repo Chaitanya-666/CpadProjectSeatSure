@@ -35,16 +35,21 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
-    final bookings = context.read<BookingsModel>();
-    bookings.clear();
-    if (!context.read<Session>().user!.isAdmin) bookings.refresh();
+    // Runs after the first frame: notifying listeners while the tree is
+    // still being built is not allowed.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final bookings = context.read<BookingsModel>()..clear();
+      if (context.read<Session>().user?.isAdmin == false) bookings.refresh();
+    });
   }
 
   void _goTo(int i) => setState(() => _index = i);
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = context.watch<Session>().user!.isAdmin;
+    // user can be null for one frame while logging out, before the gate swaps screens.
+    final isAdmin = context.watch<Session>().user?.isAdmin ?? false;
     final tabs = isAdmin
         ? const [
             _Tab('Dashboard', Icons.insights_outlined, Icons.insights, DashboardScreen()),

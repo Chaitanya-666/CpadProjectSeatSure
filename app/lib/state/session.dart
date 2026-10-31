@@ -21,7 +21,11 @@ String defaultServerUrl() {
 /// Who is logged in, which server we talk to, and that server's booking
 /// rules. Saved in SharedPreferences so the app reopens logged in.
 class Session extends ChangeNotifier {
-  Session(this.prefs) : api = ApiClient(prefs.getString(_kServer) ?? defaultServerUrl());
+  Session(this.prefs) : api = ApiClient(prefs.getString(_kServer) ?? defaultServerUrl()) {
+    api.onUnauthorized = () {
+      if (!restoring && loggedIn) logout();
+    };
+  }
 
   static const _kServer = 'server_url';
   static const _kToken = 'token';

@@ -39,7 +39,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final name = context.select<Session, String>((s) => s.user!.name.split(' ').first);
+    final name = context.select<Session, String>((s) => s.user?.name.split(' ').first ?? '');
     return Scaffold(
       appBar: AppBar(title: Text('Hi $name, pick a room')),
       body: switch ((_rooms, _error)) {

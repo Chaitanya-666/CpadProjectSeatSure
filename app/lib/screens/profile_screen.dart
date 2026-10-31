@@ -10,7 +10,8 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = context.watch<Session>();
-    final user = session.user!;
+    final user = session.user;
+    if (user == null) return const SizedBox.shrink(); // logging out
     final rules = session.rules;
     final theme = Theme.of(context);
     return Scaffold(
