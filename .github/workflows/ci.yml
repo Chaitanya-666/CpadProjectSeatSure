@@ -30,3 +30,38 @@ jobs:
           cache-dependency-path: api/package-lock.json
       - run: npm ci
       - run: npm test
+
+  app:
+    name: Flutter analyze + tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  docker:
+    name: Docker image builds (what Render deploys)
+    runs-on: ubuntu-latest
+    needs: [api, app]
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -t seatsure .
+      - name: Image starts and answers /api/health with a real database
+        run: |
+          docker network create net
+          docker run -d --name db --network net -e POSTGRES_USER=seatsure -e POSTGRES_PASSWORD=pw -e POSTGRES_DB=seatsure postgres:18
+          for i in $(seq 1 30); do docker exec db pg_isready -U seatsure && break; sleep 2; done
+          docker run -d --name app --network net -p 3000:3000 \
+            -e DATABASE_URL=postgres://seatsure:pw@db:5432/seatsure -e JWT_SECRET=ci seatsure
+          for i in $(seq 1 30); do curl -fs localhost:3000/api/health && break; sleep 2; done
+          curl -fs localhost:3000/api/health | grep '"db":"up"'
+          curl -fs localhost:3000/ | grep -i '<title>SeatSure</title>'
+          docker logs app
