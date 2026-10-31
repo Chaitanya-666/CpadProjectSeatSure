@@ -53,7 +53,7 @@ export function createApp() {
   app.use('/api', api);
 
   // Serve the Flutter web build from the same server when it is present.
-  const webDir = process.env.WEB_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
+  const webDir = path.resolve(process.env.WEB_DIR ?? path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public'));
   if (existsSync(path.join(webDir, 'index.html'))) {
     app.use(express.static(webDir, { index: 'index.html', maxAge: '1h' }));
     app.get('/{*splat}', (_req, res) => res.sendFile(path.join(webDir, 'index.html')));
