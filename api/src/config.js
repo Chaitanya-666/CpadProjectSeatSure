@@ -16,8 +16,9 @@ export const config = {
   port: int('PORT', 3000),
   databaseUrl:
     process.env.DATABASE_URL ?? 'postgres://seatsure:seatsure_local@127.0.0.1:5432/seatsure_dev',
-  // Hosted Postgres (Neon) needs TLS; the local server does not.
-  databaseSsl: process.env.DATABASE_SSL === 'true',
+  // Hosted Postgres (Neon) needs TLS; the local server does not. If unset,
+  // the URL decides (Neon's URLs carry ?sslmode=require).
+  databaseSsl: process.env.DATABASE_SSL === undefined ? undefined : process.env.DATABASE_SSL === 'true',
   jwtSecret: process.env.JWT_SECRET ?? (nodeEnv === 'production' ? null : 'dev-only-secret-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   // Opening hours of rooms are stored as local times in this zone.

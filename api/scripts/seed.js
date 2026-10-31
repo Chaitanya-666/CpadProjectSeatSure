@@ -11,13 +11,33 @@ import { hashPassword } from '../src/lib/password.js';
 import { newQrToken } from '../src/lib/tokens.js';
 import { migrate } from './migrate.js';
 
+// The repo is public, so the default demo passwords below are public too.
+// They are fine on a laptop, but a hosted database (Neon) must get private
+// passwords from SEED_ADMIN_PASSWORD / SEED_STUDENT_PASSWORD (kept in the
+// git-ignored api/.env.neon), or seeding refuses to run.
+const isLocalDb = /@(localhost|127\.0\.0\.1|\[::1\])(:|\/)/.test(config.databaseUrl);
+const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? 'Admin@1234';
+const studentPassword = process.env.SEED_STUDENT_PASSWORD ?? 'Student@123';
+
 export const DEMO = {
-  admin: { name: 'Library Admin', email: 'admin@seatsure.app', password: 'Admin@1234' },
+  admin: { name: 'Library Admin', email: 'admin@seatsure.app', password: adminPassword },
   students: [
-    { name: 'Chaitanya Shinde', email: 'chaitanya@seatsure.app', password: 'Student@123' },
-    { name: 'Riya Patil', email: 'riya@seatsure.app', password: 'Student@123' },
+    { name: 'Chaitanya Shinde', email: 'chaitanya@seatsure.app', password: studentPassword },
+    { name: 'Riya Patil', email: 'riya@seatsure.app', password: studentPassword },
   ],
 };
+
+function assertSafePasswords() {
+  if (isLocalDb) return;
+  const missing = ['SEED_ADMIN_PASSWORD', 'SEED_STUDENT_PASSWORD'].filter((k) => !process.env[k]);
+  const weak = [adminPassword, studentPassword].some((p) => p.length < 12);
+  if (missing.length || weak) {
+    throw new Error(
+      `Refusing to seed a hosted database with public demo passwords. ` +
+        `Set ${missing.length ? missing.join(' and ') : 'longer (12+ chars) SEED_*_PASSWORD values'} in the env file.`,
+    );
+  }
+}
 
 const ROOMS = [
   {
@@ -88,7 +108,7 @@ async function seedUsersRoomsSeats(db, log) {
     ...FAKE_NAMES.map((name) => ({
       name,
       email: `${name.toLowerCase().replace(/ /g, '.')}@seatsure.app`,
-      password: 'Student@123',
+      password: studentPassword,
       role: 'student',
     })),
   ];
@@ -211,6 +231,7 @@ async function seedBookings(db, log) {
 }
 
 export async function seed({ bookingsOnly = false, log = console.log } = {}) {
+  if (!bookingsOnly) assertSafePasswords();
   await migrate({ log });
   await withTransaction(async (db) => {
     if (!bookingsOnly) await seedUsersRoomsSeats(db, log);
@@ -222,8 +243,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   seed({ bookingsOnly: process.argv.includes('--bookings') })
     .then(() => {
       console.log('\nDemo logins:');
-      console.log(`  admin    ${DEMO.admin.email} / ${DEMO.admin.password}`);
-      for (const s of DEMO.students) console.log(`  student  ${s.email} / ${s.password}`);
+      // Never print the hosted database's passwords (terminal logs get shared).
+      const show = (p) => (isLocalDb ? p : '(from SEED_*_PASSWORD in your env file)');
+      console.log(`  admin    ${DEMO.admin.email} / ${show(DEMO.admin.password)}`);
+      for (const s of DEMO.students) console.log(`  student  ${s.email} / ${show(s.password)}`);
     })
     .catch((err) => {
       console.error(err);

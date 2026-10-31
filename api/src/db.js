@@ -5,7 +5,7 @@ import { config } from './config.js';
 // gives it back; this is far cheaper than opening a new connection per query.
 export const pool = new pg.Pool({
   connectionString: config.databaseUrl,
-  ssl: config.databaseSsl ? { rejectUnauthorized: true } : false,
+  ...(config.databaseSsl === undefined ? {} : { ssl: config.databaseSsl ? { rejectUnauthorized: true } : false }),
   max: 10,
 });
 
