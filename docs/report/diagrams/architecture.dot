@@ -1,0 +1,12 @@
+digraph G {
+  rankdir=LR; fontname="DejaVu Sans"; node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor="#F4F8F7", color="#00796B"]; edge [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+  subgraph cluster_clients { label="One Flutter codebase (app/lib)"; style="rounded,dashed"; color="#999999"; fontsize=10;
+    android [label="Android APK\n(phone, camera QR scan)"]; web [label="Web build\n(browser)"]; linux [label="Linux desktop\n(GTK window)"]; }
+  subgraph cluster_render { label="Render (Docker, Singapore)"; style="rounded"; color="#999999"; fontsize=10;
+    api [label="Express 5 API (Node.js)\nauth · rooms · bookings · checkin · admin\nlazy no-show sweep", fillcolor="#E0F2F1"];
+    static [label="Flutter web files\n(api/public)", fillcolor="#FFFFFF"]; }
+  db [label="PostgreSQL (Neon, Singapore)\nusers · rooms · seats · bookings\nexclusion constraints", shape=cylinder, fillcolor="#FFF8E1", color="#B8860B"];
+  android -> api [label="HTTPS + JSON\nBearer JWT"]; web -> api; linux -> api;
+  api -> static [style=dashed, arrowhead=none, label="serves"];
+  api -> db [label="SQL over TLS\n(pg pool, max 10)"];
+}

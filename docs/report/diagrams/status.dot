@@ -1,0 +1,13 @@
+digraph S {
+  rankdir=LR; fontname="DejaVu Sans"; node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor="#F4F8F7", color="#00796B"]; edge [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+  start [shape=point, width=0.15];
+  booked [label="booked\n(holds the seat)", fillcolor="#E0F2F1"];
+  checked_in [label="checked_in\n(holds the seat)", fillcolor="#C8E6C9", color="#2E7D32"];
+  completed [label="completed\n(seat free)"]; cancelled [label="cancelled\n(seat free)"];
+  no_show [label="no_show\n(seat free)", fillcolor="#FFEBEE", color="#C62828"];
+  start -> booked [label="POST /bookings"];
+  booked -> checked_in [label="scan seat QR in\n[start − 10 min, start + 15 min)"];
+  booked -> cancelled [label="POST /cancel"];
+  booked -> no_show [label="window closed, next request's\nsweep (lazy expiry)"];
+  checked_in -> completed [label="POST /checkout\n(leave early)"];
+}

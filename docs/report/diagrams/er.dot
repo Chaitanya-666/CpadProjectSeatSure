@@ -1,0 +1,27 @@
+digraph ER {
+  rankdir=LR; fontname="DejaVu Sans"; node [shape=plain, fontname="DejaVu Sans", fontsize=10]; edge [fontname="DejaVu Sans", fontsize=9, color="#555555", arrowhead=crow, arrowtail=tee, dir=both];
+  users [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#F4F8F7" color="#00796B">
+   <tr><td bgcolor="#00796B"><font color="white"><b>users</b></font></td></tr>
+   <tr><td align="left"><b>id</b> serial PK</td></tr><tr><td align="left">name text CHECK 2–80</td></tr>
+   <tr><td align="left">email text UNIQUE (lower)</td></tr><tr><td align="left">password_hash text (scrypt)</td></tr>
+   <tr><td align="left">role 'student' | 'admin'</td></tr><tr><td align="left">created_at timestamptz</td></tr></table>>];
+  rooms [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#F4F8F7" color="#00796B">
+   <tr><td bgcolor="#00796B"><font color="white"><b>rooms</b></font></td></tr>
+   <tr><td align="left"><b>id</b> serial PK</td></tr><tr><td align="left">name text UNIQUE</td></tr>
+   <tr><td align="left">description, floor text</td></tr><tr><td align="left">open_time, close_time time</td></tr>
+   <tr><td align="left">CHECK open &lt; close</td></tr><tr><td align="left">is_active boolean</td></tr></table>>];
+  seats [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#F4F8F7" color="#00796B">
+   <tr><td bgcolor="#00796B"><font color="white"><b>seats</b></font></td></tr>
+   <tr><td align="left"><b>id</b> serial PK</td></tr><tr><td align="left">room_id FK → rooms</td></tr>
+   <tr><td align="left">label text, UNIQUE (room_id, label)</td></tr><tr><td align="left">has_power boolean</td></tr>
+   <tr><td align="left">qr_token text UNIQUE</td></tr><tr><td align="left">is_active boolean</td></tr></table>>];
+  bookings [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="4" bgcolor="#FFF8E1" color="#B8860B">
+   <tr><td bgcolor="#B8860B"><font color="white"><b>bookings</b></font></td></tr>
+   <tr><td align="left"><b>id</b> serial PK</td></tr><tr><td align="left">seat_id FK → seats</td></tr><tr><td align="left">user_id FK → users</td></tr>
+   <tr><td align="left">slot tstzrange [start, end)</td></tr>
+   <tr><td align="left">status booked | checked_in | completed | cancelled | no_show</td></tr>
+   <tr><td align="left">checked_in_at, ended_at, created_at</td></tr>
+   <tr><td align="left" bgcolor="#FFE0B2">EXCLUDE (seat_id =, slot &amp;&amp;) WHERE live</td></tr>
+   <tr><td align="left" bgcolor="#FFE0B2">EXCLUDE (user_id =, slot &amp;&amp;) WHERE live</td></tr></table>>];
+  rooms -> seats [label=" 1 : N"]; seats -> bookings [label=" 1 : N"]; users -> bookings [label=" 1 : N"];
+}

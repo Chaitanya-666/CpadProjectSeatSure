@@ -1,0 +1,17 @@
+digraph F {
+  fontname="DejaVu Sans"; node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor="#F4F8F7", color="#00796B"]; edge [fontname="DejaVu Sans", fontsize=9, color="#555555"];
+  a [label="POST /api/bookings {seatId, start, end}"];
+  v [label="zod: body shape; slots.js: 15-min grid,\n30 min–4 h, not past, ≤ 7 days ahead"];
+  b [label="BEGIN"];
+  l [label="SELECT … FROM users WHERE id = me FOR UPDATE\n(one booking request per student at a time)"];
+  s [label="sweep no-shows (same transaction)"];
+  h [label="seat active? room open for the whole slot?\n(time-zone maths in SQL)"];
+  c [label="count my live bookings < 3 ?"];
+  i [label="INSERT INTO bookings …", fillcolor="#FFF8E1", color="#B8860B"];
+  ok [label="COMMIT → 201 booking", fillcolor="#C8E6C9", color="#2E7D32"];
+  e4 [label="400 bad_request", fillcolor="#FFEBEE", color="#C62828"];
+  e9 [label="ROLLBACK → 409\nseat_taken / you_have_overlap /\nlimit_reached", fillcolor="#FFEBEE", color="#C62828"];
+  a -> v -> b -> l -> s -> h -> c -> i -> ok;
+  v -> e4 [label="invalid"]; h -> e4 [label="outside hours"];
+  c -> e9 [label="no"]; i -> e9 [label="exclusion constraint\nviolated (23P01)"];
+}
