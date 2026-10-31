@@ -8,14 +8,20 @@
 FROM debian:bookworm-slim AS web
 RUN apt-get update \
  && apt-get install -y --no-install-recommends git curl unzip xz-utils ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-RUN git clone --depth 1 --branch 3.47.7 https://github.com/flutter/flutter.git /opt/flutter
-ENV PATH=/opt/flutter/bin:$PATH
+ && rm -rf /var/lib/apt/lists/* \
+ && useradd --create-home builder
+# Build as a normal user. As root, tar tries to restore the archive's file
+# owners, which Render's restricted builder rejects ("Cannot change
+# ownership ... Invalid argument"). TAR_OPTIONS is a second guard for that.
+ENV TAR_OPTIONS=--no-same-owner
+USER builder
+RUN git clone --depth 1 --branch 3.47.7 https://github.com/flutter/flutter.git /home/builder/flutter
+ENV PATH=/home/builder/flutter/bin:$PATH
 RUN flutter config --no-analytics --no-cli-animations && flutter precache --web
-WORKDIR /src/app
-COPY app/pubspec.yaml app/pubspec.lock ./
+WORKDIR /home/builder/app
+COPY --chown=builder app/pubspec.yaml app/pubspec.lock ./
 RUN flutter pub get
-COPY app/ ./
+COPY --chown=builder app/ ./
 RUN flutter build web --release
 
 FROM node:24-alpine
@@ -24,7 +30,7 @@ ENV NODE_ENV=production
 COPY api/package.json api/package-lock.json ./
 RUN npm ci --omit=dev
 COPY api/ ./
-COPY --from=web /src/app/build/web ./public
+COPY --from=web /home/builder/app/build/web ./public
 EXPOSE 3000
 USER node
 # Apply any new migrations, then start. Safe to repeat: applied files are skipped.
