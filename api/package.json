@@ -1,0 +1,30 @@
+{
+  "name": "seatsure-api",
+  "version": "1.0.0",
+  "description": "SeatSure REST API: library seat booking with QR check-in and no-show release",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch --env-file-if-exists=.env src/server.js",
+    "migrate": "node --env-file-if-exists=.env scripts/migrate.js",
+    "seed": "node --env-file-if-exists=.env scripts/seed.js",
+    "test": "node --env-file-if-exists=.env.test --test --test-concurrency=1 test/"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.2",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}
