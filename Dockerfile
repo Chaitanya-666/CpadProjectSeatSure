@@ -3,7 +3,15 @@
 # build happens here). Stage 2 is a small Node image that runs the API and
 # serves the built web files from api/public.
 
-FROM ghcr.io/cirruslabs/flutter:stable AS web
+# Flutter is installed at the exact version used for development (3.47.7):
+# the prebuilt Flutter images lag behind and fail the app's Dart SDK constraint.
+FROM debian:bookworm-slim AS web
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends git curl unzip xz-utils ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch 3.47.7 https://github.com/flutter/flutter.git /opt/flutter
+ENV PATH=/opt/flutter/bin:$PATH
+RUN flutter config --no-analytics --no-cli-animations && flutter precache --web
 WORKDIR /src/app
 COPY app/pubspec.yaml app/pubspec.lock ./
 RUN flutter pub get
