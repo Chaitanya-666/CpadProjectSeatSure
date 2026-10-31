@@ -142,7 +142,13 @@ class _RoomScreenState extends State<RoomScreen> {
     try {
       final booking = await context.read<BookingsModel>().book(seatId: seat.id, start: _start, end: _end);
       if (!mounted) return;
-      showInfo(context, 'Booked ${booking.seatLabel}. Check in from ${timeFmt.format(booking.checkinOpensAt)}.');
+      final openNow = !DateTime.now().isBefore(booking.checkinOpensAt);
+      showInfo(
+        context,
+        openNow
+            ? 'Booked ${booking.seatLabel}. Check in now, before ${timeFmt.format(booking.checkinDeadline)}.'
+            : 'Booked ${booking.seatLabel}. Check in from ${timeFmt.format(booking.checkinOpensAt)}.',
+      );
       Navigator.pop(context, true);
     } on ApiException catch (e) {
       if (!mounted) return;
@@ -270,7 +276,11 @@ class _SeatTile extends StatelessWidget {
       label: 'Seat ${seat.label}, ${seat.state.name}',
       child: Material(
         color: bg,
-        borderRadius: BorderRadius.circular(12),
+        // Taken seats get an outline so they stand out from the background.
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: seat.state == SeatState.taken ? BorderSide(color: scheme.outline) : BorderSide.none,
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: onTap,
@@ -301,7 +311,7 @@ class _Legend extends StatelessWidget {
       child: Wrap(spacing: 16, runSpacing: 4, children: [
         dot(Colors.green.shade600, 'Free'),
         dot(scheme.primary, 'Yours'),
-        dot(scheme.surfaceContainerHighest, 'Taken'),
+        dot(scheme.outline, 'Taken'),
         const Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.power, size: 14), Text(' Power socket')]),
       ]),
     );
