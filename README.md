@@ -101,13 +101,18 @@ flutter build apk --release --split-per-abi --dart-define=API_BASE_URL=https://<
 The app's **Server** screen (login page, top right) switches to another
 address at runtime, e.g. a laptop on the same hotspot: `http://<laptop-ip>:3000`.
 
-### Demo logins (after `npm run seed`)
+### Demo logins (after `npm run seed` on a local database)
 
 | Role | Email | Password |
 |---|---|---|
 | Admin | admin@seatsure.app | Admin@1234 |
 | Student | chaitanya@seatsure.app | Student@123 |
 | Student | riya@seatsure.app | Student@123 |
+
+The repo is public, so these passwords are public. Seeding a hosted
+database refuses to run unless `SEED_ADMIN_PASSWORD` and
+`SEED_STUDENT_PASSWORD` (12+ characters) are set in a git-ignored env file;
+the live deployment uses those private passwords instead.
 
 ## Tests
 
@@ -151,8 +156,11 @@ config, register and login. Errors look like
 2. Render: New → Blueprint → this repo. Paste the Neon string as
    `DATABASE_URL`. Render builds the `Dockerfile`, which builds the web app
    and runs migrations on start.
-3. Open `https://<app>.onrender.com/api/health`. Seed once from a laptop:
-   `DATABASE_URL=<neon url> DATABASE_SSL=true npm --prefix api run seed`.
+3. Open `https://<app>.onrender.com/api/health`. Seed once from a laptop,
+   with the Neon URL and private `SEED_*_PASSWORD` values in the git-ignored
+   `api/.env.neon`: `cd api && node --env-file=.env.neon scripts/seed.js`.
+   (If your shell sets `PGPORT`/`PGHOST`, unset them: the driver uses them
+   when the URL has no port.)
 
 Free Render services sleep after 15 minutes idle (first request then takes
 up to a minute). Open `/api/health` a couple of minutes before a demo.
