@@ -7,6 +7,8 @@ CPAD (R5CO4004L) ESE mini project, Chaitanya Shinde (231070066), B.Tech CE, VJTI
 
 ![CI](https://github.com/Chaitanya-666/CpadProjectSeatSure/actions/workflows/ci.yml/badge.svg)
 
+**Live:** https://seatsure-9hn0.onrender.com (web app) · [`/api/health`](https://seatsure-9hn0.onrender.com/api/health). Free tier: the first request after 15 idle minutes takes up to a minute.
+
 ## What it does
 
 **Students**
