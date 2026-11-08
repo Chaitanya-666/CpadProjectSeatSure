@@ -7,7 +7,7 @@ CPAD (R5CO4004L) ESE mini project, Chaitanya Shinde (231070066), B.Tech CE, VJTI
 
 ![CI](https://github.com/Chaitanya-666/CpadProjectSeatSure/actions/workflows/ci.yml/badge.svg)
 
-**Live:** https://seatsure-9hn0.onrender.com (web app) · [`/api/health`](https://seatsure-9hn0.onrender.com/api/health). Free tier: the first request after 15 idle minutes takes up to a minute.
+**Live:** https://seatsure-9hn0.onrender.com (web app) · [`/api/health`](https://seatsure-9hn0.onrender.com/api/health). Free tier: the first request after 15 idle minutes takes up to a minute. Before a demo run `scripts/wake.sh`: it waits until the API and the database both answer.
 
 ## What it does
 

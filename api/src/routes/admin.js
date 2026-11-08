@@ -14,13 +14,26 @@ adminRouter.use(requireAuth, requireAdmin, noShowSweep);
 const idParam = z.object({ id: z.coerce.number().int().positive() });
 const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use HH:MM (24-hour)');
 
-const roomBody = z.object({
+const roomFields = {
   name: z.string().trim().min(2).max(80),
-  description: z.string().trim().max(300).default(''),
-  floor: z.string().trim().max(40).default(''),
+  description: z.string().trim().max(300),
+  floor: z.string().trim().max(40),
+  openTime: hhmm,
+  closeTime: hhmm,
+};
+
+// Creating a room: missing fields get defaults.
+const roomBody = z.object({
+  ...roomFields,
+  description: roomFields.description.default(''),
+  floor: roomFields.floor.default(''),
   openTime: hhmm.default('08:00'),
   closeTime: hhmm.default('22:00'),
 });
+
+// Editing a room: no defaults. zod 4 still applies .default() inside
+// .partial(), which would overwrite every field the client did not send.
+const roomPatch = z.object(roomFields).partial().extend({ isActive: z.boolean().optional() });
 
 const ROOM_COLUMNS = `r.id, r.name, r.description, r.floor, r.is_active,
   to_char(r.open_time, 'HH24:MI') AS open_time, to_char(r.close_time, 'HH24:MI') AS close_time`;
@@ -62,7 +75,7 @@ adminRouter.post('/rooms', async (req, res) => {
 
 adminRouter.patch('/rooms/:id', async (req, res) => {
   const { id } = idParam.parse(req.params);
-  const b = roomBody.partial().extend({ isActive: z.boolean().optional() }).parse(req.body);
+  const b = roomPatch.parse(req.body);
   // COALESCE keeps the old value for every field the client did not send.
   const { rows } = await query(
     `UPDATE rooms AS r SET

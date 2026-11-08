@@ -36,6 +36,35 @@ describe('admin', () => {
     assert.equal(list.body.seats.length, 4, 'the failed batch left nothing behind');
   });
 
+  it('a partial room edit keeps every field it did not send', async () => {
+    // Regression: zod 4 applies .default() inside .partial(), so closing a room
+    // with { isActive: false } used to wipe the description and floor and reset
+    // the hours to 08:00-22:00.
+    const admin = await makeUser({ role: 'admin' });
+    const created = await api()
+      .post('/api/admin/rooms')
+      .set(admin.auth)
+      .send({ name: 'Annex', description: 'Quiet corner', floor: 'Third floor', openTime: '09:00', closeTime: '17:00' });
+    const id = created.body.room.id;
+
+    const closed = await api().patch(`/api/admin/rooms/${id}`).set(admin.auth).send({ isActive: false });
+    assert.equal(closed.status, 200);
+    const { id: _id, ...room } = closed.body.room;
+    assert.deepEqual(room, {
+      name: 'Annex',
+      description: 'Quiet corner',
+      floor: 'Third floor',
+      openTime: '09:00',
+      closeTime: '17:00',
+      isActive: false,
+    });
+
+    const later = await api().patch(`/api/admin/rooms/${id}`).set(admin.auth).send({ closeTime: '19:00' });
+    assert.equal(later.body.room.openTime, '09:00');
+    assert.equal(later.body.room.closeTime, '19:00');
+    assert.equal(later.body.room.description, 'Quiet corner');
+  });
+
   it('rejects closing before opening', async () => {
     const admin = await makeUser({ role: 'admin' });
     const res = await api()
