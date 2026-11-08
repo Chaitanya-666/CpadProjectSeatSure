@@ -29,7 +29,7 @@
 #key_box(title: "Abstract")[
   College reading halls fill up with bags on empty chairs: a seat is "taken" for hours while nobody uses it. SeatSure is a cross-platform app that lets a student book a library seat for a time slot, proves they actually came by having them scan a QR code stuck on the desk, and releases the seat automatically if they do not check in within 15 minutes. A librarian sees live occupancy, no-show rates and the busiest hours, and manages rooms, seats and the printed QR codes.
 
-  The app is written once in Flutter and runs on Android, in a web browser and as a Linux desktop app. All three talk to one REST API (Node.js + Express) backed by PostgreSQL. The rule that matters most, "no seat may be booked twice for overlapping times", is enforced by the database itself with an exclusion constraint, so it holds even when two phones press "Book" at the same instant. The system is deployed (Render + Neon), has 36 automated tests that run on every push, and was tested on an Android emulator and on the live deployment.
+  The app is written once in Flutter and runs on Android, in a web browser and as a Linux desktop app. All three talk to one REST API (Node.js + Express) backed by PostgreSQL. The rule that matters most, "no seat may be booked twice for overlapping times", is enforced by the database itself with an exclusion constraint, so it holds even when two phones press "Book" at the same instant. The system is deployed (Render + Neon), has 37 automated tests that run on every push, and was tested on an Android emulator, in the browser and as a Linux desktop app against the live deployment.
 ]
 
 #v(1em)
@@ -72,7 +72,7 @@ SeatSure turns a seat into a time-slot booking that must be *claimed in person*:
 #table(
   columns: (1fr, 1fr),
   align: left,
-  [*In scope*], [*Out of scope (future work, Section 12)*],
+  [*In scope*], [*Out of scope (future work, Section 13)*],
   [Student sign-up and login; admin (librarian) role],
   [College single sign-on, email verification, password reset],
   [Rooms with opening hours; seats with labels, power sockets, QR codes],
@@ -388,7 +388,7 @@ Two `ChangeNotifier`s are provided at the top of the tree with `MultiProvider`. 
   figure_inline("images/android/19_dark_admin_dashboard.png", width: 95%, caption: [Fig. 18: Dark theme (follows the phone setting)]),
 )
 
-== Dark theme and the web build
+== Dark theme, the web build and Linux desktop
 
 #grid(
   columns: (1fr, 1fr),
@@ -400,6 +400,7 @@ Two `ChangeNotifier`s are provided at the top of the tree with `MultiProvider`. 
 #figure_inline("images/web/02_student_seat_map.png", width: 100%, caption: [Fig. 21: Web build at 1280 px: side rail and a wider seat grid, same code])
 #figure_inline("images/web/03_admin_dashboard.png", width: 100%, caption: [Fig. 22: Web build, admin dashboard])
 #figure_inline("images/web/04_admin_qr_sheet.png", width: 100%, caption: [Fig. 23: Web build, printable QR sheet for a room])
+#figure_inline("images/linux/01_linux_admin_dashboard.png", width: 100%, caption: [Fig. 24: Linux desktop build (release) against the live server: admin dashboard with the side rail])
 
 // ============================================================================
 = Testing
@@ -415,12 +416,12 @@ The API tests (`api/test`, `node:test` + `supertest`) run against a real Postgre
   [Auth (7)], [registers a student; ignores a client-sent role; email uniqueness ignores case; readable validation errors; login works only with the right password and gives the same error for an unknown email; routes reject missing/bad tokens; health reports the database up],
   [Booking rules (10)], [books a free seat; overlapping booking of the same seat → 409; back-to-back slots allowed; one student cannot hold two seats at once; *two simultaneous requests for one seat: exactly one wins*; *per-student limit holds for parallel requests*; time rules (grid, length, past, horizon, opening hours); cancel frees the seat, cannot cancel twice or someone else's booking; seat map free/taken/mine; my bookings only],
   [Check-in (5)], [right seat inside the window; a few minutes early; too early / wrong seat / unknown code / no booking; *lazy no-show release*; leave early frees the seat],
-  [Admin (5)], [closed to students; room + bulk seats, a failed batch leaves nothing behind; closing before opening rejected; rotating a QR code kills the old one; stats and the day list],
+  [Admin (6)], [closed to students; room + bulk seats, a failed batch leaves nothing behind; *a partial room edit keeps the fields it did not send* (regression test); closing before opening rejected; rotating a QR code kills the old one; stats and the day list],
   [Flutter (9)], [JSON parsing and UTC → local time; check-in window edges; which actions each status allows; opening hours in minutes; login validation; sign-up rules; booking card texts; no-show card has no actions; *logging out does not crash* (regression test)],
 )
 
 #warn_box(title: "Checking that the tests can fail")[
-  A test that never fails proves nothing. The two concurrency tests were checked by breaking the code on purpose: without the `FOR UPDATE` lock the limit test failed 3 times out of 3, and with the `no_seat_overlap` constraint dropped the simultaneous-booking test failed. The logout regression test was also run against the old code and failed there.
+  A test that never fails proves nothing. The two concurrency tests were checked by breaking the code on purpose: without the `FOR UPDATE` lock the limit test failed 3 times out of 3, and with the `no_seat_overlap` constraint dropped the simultaneous-booking test failed. The two regression tests (logout, partial room edit) were also run against the old code and failed there.
 ]
 
 == Continuous integration
@@ -440,6 +441,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [1. Emulator], [Pixel AVD, Android 16, release APK against the API on the laptop; web build in Chromium], [Every student and admin flow worked. A seat booked on Android showed as taken on the web build for another student. Found 3 bugs (below).],
   [2. Live], [Render + Neon; the student on the laptop browser (Brave, dark theme)], [Booked D1, checked in at 3:54 PM inside the 3:45–4:00 window; the admin dashboard updated live. Found 1 bug (below).],
   [3. Final], [App 1.0.1 on the emulator, fresh demo data, light and dark themes], [All flows in Figs. 1–20 including wrong seat, leave early and a lazy no-show.],
+  [4. Live, 8 Nov], [Render + Neon after a week idle; Linux desktop release build], [The live service did not wake (Section 12). After a redeploy: web app, admin and student login, rooms and stats all worked, and the public demo password was refused. Linux desktop build shown in Fig. 24. Found 1 bug (below).],
 )
 
 #topic_subheading[Bugs found by testing, and fixes]
@@ -453,6 +455,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [Web page fallback crashed the server], [`res.sendFile` needs an absolute path; `WEB_DIR` was relative.], [`path.resolve` on `WEB_DIR`.],
   [Code field invisible on a wide browser], [The square camera box filled a 1920 px wide window (about 1700 px tall).], [Check-in column limited to 480 px; clearer "camera blocked" hint (app 1.0.1).],
   [First Render deploy failed], [Running as root, `tar` tried to restore file owners, which Render's builder forbids.], [Flutter built as a normal user inside Docker.],
+  [Closing a room would erase its details], [The edit route reused the create schema with `.partial()`. In zod 4, `.default()` still fills in missing fields inside `.partial()`, so `{ isActive: false }` also sent an empty description and floor and the default hours 08:00–22:00.], [Separate edit schema without defaults (`COALESCE` then keeps the old values); regression test. Found while reading the code before a live test; no live data was affected.],
 )
 
 // ============================================================================
@@ -469,7 +472,11 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
 )
 
 #note_box(title: "Free-tier behaviour")[
-  Render's free service sleeps after 15 minutes without requests; the next request waits 30–60 seconds while it wakes. The app allows up to 60 seconds per request for this reason, and the demo starts by opening `/api/health` a couple of minutes early. Lazy no-show release (Section 6.3) is what keeps the booking rules correct across these sleeps.
+  Render's free service sleeps after 15 minutes without requests; the next request waits 30–60 seconds while it wakes. The app allows up to 60 seconds per request for this reason, and before a demo `scripts/wake.sh` calls `/api/health` until it reports the database up. That one request wakes both Render and Neon, because the health route runs `SELECT now()`. Lazy no-show release (Section 6.3) is what keeps the booking rules correct across these sleeps.
+]
+
+#warn_box(title: "Incident on 8 Nov: the service would not wake")[
+  After a week without traffic, every request hung for about a minute and was then reset, also from monitoring nodes in Europe, so it was not the local network. Render's status page was green, Neon answered directly in 1.8 s, and the runtime logs were empty, so no request reached the app. *Restart service* did not help. *Deploy latest commit* (the same commit, about 3 minutes with the build cache) brought it back. Lesson for the demo: run `scripts/wake.sh` well ahead, and if it gives up, redeploy instead of waiting.
 ]
 
 // ============================================================================
@@ -482,11 +489,12 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
 - *Accounts.* No email verification, password reset or college single sign-on.
 - *Time zone.* Opening hours are in one configured zone (Asia/Kolkata); a multi-campus version would store a zone per room.
 - *iOS / macOS* builds need a Mac with Xcode; the code itself has nothing Android-specific apart from the manifest.
+- *Camera scan on a real phone.* The emulator's virtual camera was too blurry to read a QR code, so check-in was tested with the typed code (same API call). Scanning with a physical phone's camera is the first step of the demo rehearsal.
 
 // ============================================================================
 = Conclusion
 
-SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 36 automated tests, a CI pipeline that also builds the deployed image, and three manual test rounds back these claims, and the system is live on the internet.
+SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 37 automated tests, a CI pipeline that also builds the deployed image, and four manual test rounds back these claims, and the system is live on the internet.
 
 // ============================================================================
 = Appendix A: Running the project
@@ -499,7 +507,7 @@ psql -h 127.0.0.1 -U postgres -c \"CREATE DATABASE seatsure_dev OWNER seatsure\"
 cd api && cp .env.example .env && npm install
 npm run seed        # migrations + demo data
 npm run dev         # http://localhost:3000/api/health
-npm test            # 27 API tests (needs seatsure_test)
+npm test            # 28 API tests (needs seatsure_test)
 
 # app
 cd app && flutter test
