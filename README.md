@@ -9,6 +9,41 @@ CPAD (R5CO4004L) ESE mini project, Chaitanya Shinde (231070066), B.Tech CE, VJTI
 
 **Live:** https://seatsure-9hn0.onrender.com (web app) · [`/api/health`](https://seatsure-9hn0.onrender.com/api/health). Free tier: the first request after 15 idle minutes takes up to a minute. Before a demo run `scripts/wake.sh`: it waits until the API and the database both answer.
 
+## Screenshots and demo
+
+**Real phone, live server (10 Nov 2026).** Release APK 1.0.1 on an Android
+phone against the deployed API. Seats were checked in with the phone camera
+scanning the seat QR codes.
+
+<p align="center">
+  <img src="docs/evidence/2026-11-10-phone/qr-checkin.gif" width="280" alt="Booking seat A1, scanning the wrong seat's QR, then checking in at A1 (3x speed)">
+</p>
+<p align="center"><sub>Book A1, scan the wrong seat (refused), scan A1 (checked in). 3x speed.
+Full run: <a href="docs/evidence/2026-11-10-phone/seatsure-phone-run.mp4">seatsure-phone-run.mp4</a> (4 min 37 s).</sub></p>
+
+| Rooms, free now | Seat map | Double booking refused | Booking rules |
+|---|---|---|---|
+| <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221139.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221404.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221408.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221148.jpg" width="200"> |
+
+| Wrong seat's QR | Not a SeatSure QR | Checked in by camera | Scanned again |
+|---|---|---|---|
+| <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221310.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221320.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221346.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221457.jpg" width="200"> |
+
+| Booking checked in | Left early: completed | Room closed for the day | Check-in tab |
+|---|---|---|---|
+| <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221353.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221507.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221420.jpg" width="200"> | <img src="docs/evidence/2026-11-10-phone/screens/Screenshot_20261110_221335.jpg" width="200"> |
+
+All 31 screenshots of the run: [`docs/evidence/2026-11-10-phone/screens/`](docs/evidence/2026-11-10-phone/screens/).
+
+**Librarian (admin) side**
+
+| Dashboard (Linux desktop) | Day bookings with names | QR sheet, new QR per seat |
+|---|---|---|
+| <img src="docs/report/images/linux/01_linux_admin_dashboard.png" width="300"> | <img src="docs/report/images/android/16_admin_day_bookings.png" width="200"> | <img src="docs/report/images/web/04_admin_qr_sheet.png" width="300"> |
+
+More screens (Android, web, dark theme) are in [`docs/report/images/`](docs/report/images/)
+and in the project report.
+
 ## What it does
 
 **Students**
@@ -119,7 +154,7 @@ the live deployment uses those private passwords instead.
 ## Tests
 
 ```sh
-cd api && npm test        # 27 tests against the seatsure_test database
+cd api && npm test        # 28 tests against the seatsure_test database
 cd app && flutter test    # model + widget tests
 ```
 

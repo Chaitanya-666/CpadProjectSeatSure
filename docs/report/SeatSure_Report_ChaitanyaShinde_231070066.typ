@@ -442,6 +442,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [2. Live], [Render + Neon; the student on the laptop browser (Brave, dark theme)], [Booked D1, checked in at 3:54 PM inside the 3:45–4:00 window; the admin dashboard updated live. Found 1 bug (below).],
   [3. Final], [App 1.0.1 on the emulator, fresh demo data, light and dark themes], [All flows in Figs. 1–20 including wrong seat, leave early and a lazy no-show.],
   [4. Live, 8 Nov], [Render + Neon after a week idle; Linux desktop release build], [The live service did not wake (Section 12). After a redeploy: web app, admin and student login, rooms and stats all worked, and the public demo password was refused. Linux desktop build shown in Fig. 24. Found 1 bug (below).],
+  [5. Real phone, 10 Nov], [Release APK 1.0.1 on a physical Android phone, live server, camera scanning QR codes shown on the laptop screen], [Sign up, rooms, seat map, overlap refused, and with the camera: wrong seat refused, non-SeatSure code refused, checked in, second scan refused; leave early gave Completed. No bugs. Screenshots and a screen recording are in `docs/evidence/2026-11-10-phone/`.],
 )
 
 #topic_subheading[Bugs found by testing, and fixes]
@@ -489,12 +490,11 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
 - *Accounts.* No email verification, password reset or college single sign-on.
 - *Time zone.* Opening hours are in one configured zone (Asia/Kolkata); a multi-campus version would store a zone per room.
 - *iOS / macOS* builds need a Mac with Xcode; the code itself has nothing Android-specific apart from the manifest.
-- *Camera scan on a real phone.* The emulator's virtual camera was too blurry to read a QR code, so check-in was tested with the typed code (same API call). Scanning with a physical phone's camera is the first step of the demo rehearsal.
 
 // ============================================================================
 = Conclusion
 
-SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 37 automated tests, a CI pipeline that also builds the deployed image, and four manual test rounds back these claims, and the system is live on the internet.
+SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 37 automated tests, a CI pipeline that also builds the deployed image, and five manual test rounds (the last on a real phone with its camera) back these claims, and the system is live on the internet.
 
 // ============================================================================
 = Appendix A: Running the project
