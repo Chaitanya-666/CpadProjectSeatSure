@@ -9,6 +9,8 @@ CPAD (R5CO4004L) ESE mini project, Chaitanya Shinde (231070066), B.Tech CE, VJTI
 
 **Live:** https://seatsure-9hn0.onrender.com (web app) · [`/api/health`](https://seatsure-9hn0.onrender.com/api/health). Free tier: the first request after 15 idle minutes takes up to a minute. Before a demo run `scripts/wake.sh`: it waits until the API and the database both answer.
 
+**Download v1.0.1:** [Android APK, project report (PDF) and source](https://github.com/Chaitanya-666/CpadProjectSeatSure/releases/tag/v1.0.1).
+
 ## Screenshots and demo
 
 **Real phone, live server (10 Nov 2026).** Release APK 1.0.1 on an Android
