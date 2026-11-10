@@ -35,11 +35,30 @@ Full run: <a href="docs/evidence/2026-11-10-phone/seatsure-phone-run.mp4">seatsu
 
 All 31 screenshots of the run: [`docs/evidence/2026-11-10-phone/screens/`](docs/evidence/2026-11-10-phone/screens/).
 
-**Librarian (admin) side**
+### Librarian and student together (10 Nov 2026)
 
-| Dashboard (Linux desktop) | Day bookings with names | QR sheet, new QR per seat |
-|---|---|---|
-| <img src="docs/report/images/linux/01_linux_admin_dashboard.png" width="300"> | <img src="docs/report/images/android/16_admin_day_bookings.png" width="200"> | <img src="docs/report/images/web/04_admin_qr_sheet.png" width="300"> |
+The librarian on the **Linux desktop build**, a student on the **Android phone**,
+and a second student (Riya) booking through the API, all on the live server.
+Videos (no audio): [laptop, 7 min 43 s](docs/evidence/2026-11-10-admin/laptop-admin-run.mp4) ·
+[phone, 6 min 9 s](docs/evidence/2026-11-10-admin/phone-run.mp4).
+
+| Librarian: today's bookings with names | Librarian: dashboard live (1 in use, 1 waiting) |
+|---|---|
+| <img src="docs/evidence/2026-11-10-admin/laptop/01-bookings-today.jpg" width="420"> | <img src="docs/evidence/2026-11-10-admin/laptop/02-dashboard-live.jpg" width="420"> |
+| **Librarian: Silent Study Zone switched off** | **Librarian: QR sheet after a new code for A4** |
+| <img src="docs/evidence/2026-11-10-admin/laptop/03-room-switched-off.jpg" width="420"> | <img src="docs/evidence/2026-11-10-admin/laptop/05-qr-sheet-new-a4.jpg" width="420"> |
+
+| Riya's seat A3 shows as taken | Booking cancelled | Checked in at A6 | Room off: gone for students |
+|---|---|---|---|
+| <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225337.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225357.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225427.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225637.jpg" width="200"> |
+
+| Room on again, details kept | Old A4 code after a new one | Too early to check in | History |
+|---|---|---|---|
+| <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225647.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225744.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225914.jpg" width="200"> | <img src="docs/evidence/2026-11-10-admin/screens/Screenshot_20261110_225834.jpg" width="200"> |
+
+Riya never checked in, so at 23:00 (start + 15 min) her booking turned into
+**No-show** by itself and the seat was free again, with no timer running.
+All 18 phone screenshots: [`docs/evidence/2026-11-10-admin/screens/`](docs/evidence/2026-11-10-admin/screens/).
 
 More screens (Android, web, dark theme) are in [`docs/report/images/`](docs/report/images/)
 and in the project report.

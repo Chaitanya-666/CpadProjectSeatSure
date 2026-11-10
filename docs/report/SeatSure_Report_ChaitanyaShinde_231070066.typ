@@ -443,6 +443,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [3. Final], [App 1.0.1 on the emulator, fresh demo data, light and dark themes], [All flows in Figs. 1–20 including wrong seat, leave early and a lazy no-show.],
   [4. Live, 8 Nov], [Render + Neon after a week idle; Linux desktop release build], [The live service did not wake (Section 12). After a redeploy: web app, admin and student login, rooms and stats all worked, and the public demo password was refused. Linux desktop build shown in Fig. 24. Found 1 bug (below).],
   [5. Real phone, 10 Nov], [Release APK 1.0.1 on a physical Android phone, live server, camera scanning QR codes shown on the laptop screen], [Sign up, rooms, seat map, overlap refused, and with the camera: wrong seat refused, non-SeatSure code refused, checked in, second scan refused; leave early gave Completed. No bugs. Screenshots and a screen recording are in `docs/evidence/2026-11-10-phone/`.],
+  [6. Cross-device, 10 Nov], [Librarian on the Linux desktop build, student on the phone, a second student through the API; live server], [Second student's seat shown as taken; cancel; check-in and leave early; dashboard live (1 in use, 1 waiting); room switched off and on with its details kept; new QR for A4 made the old code useless; too early refused; the unattended booking became a no-show at start + 15 min. No bugs. Evidence in `docs/evidence/2026-11-10-admin/`.],
 )
 
 #topic_subheading[Bugs found by testing, and fixes]
@@ -494,7 +495,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
 // ============================================================================
 = Conclusion
 
-SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 37 automated tests, a CI pipeline that also builds the deployed image, and five manual test rounds (the last on a real phone with its camera) back these claims, and the system is live on the internet.
+SeatSure meets the ESE requirements: it is built with one CPAD framework (Flutter), runs on Android, the web and Linux desktop from a single codebase, and has an integrated backend (Express REST API) and database (PostgreSQL). Beyond the minimum, the two hard problems of seat booking are solved at the right layer: double booking is impossible because PostgreSQL refuses overlapping ranges, and no-shows are released correctly even on a server that sleeps, because expiry is computed when data is read instead of by a timer. 37 automated tests, a CI pipeline that also builds the deployed image, and six manual test rounds (the last two on a real phone with its camera, next to the librarian's desktop build) back these claims, and the system is live on the internet.
 
 // ============================================================================
 = Appendix A: Running the project
