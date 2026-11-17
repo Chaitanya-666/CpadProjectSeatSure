@@ -1,0 +1,27 @@
+// Deployment diagram for the report (Deployment details). Render: dot -Tsvg deployment.dot -o deployment.svg
+digraph D {
+  rankdir=LR; newrank=true; nodesep=0.3; ranksep=0.55; compound=true;
+  fontname="DejaVu Sans"; node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", fillcolor="#F4F8F7", color="#00796B"];
+  edge [fontname="DejaVu Sans", fontsize=8.5, color="#555555"];
+
+  subgraph cluster_dev { label="Development"; style="rounded,dashed"; color="#999999"; fontsize=10;
+    dev [label="Laptop\n(code, local Postgres,\nnpm test, flutter test)"]; }
+  subgraph cluster_gh { label="GitHub"; style="rounded"; color="#555555"; fontsize=10;
+    repo [label="Repository\nmain branch"]; ci [label="GitHub Actions CI\n1. API tests (Postgres 18)\n2. flutter analyze + test\n3. Docker build + boot check"]; rel [label="Release v1.0.1\n(APK, report, source)"]; }
+  subgraph cluster_render { label="Render (free, Singapore)"; style="rounded"; color="#00796B"; fontsize=10;
+    build [label="Docker build\nstage 1: Flutter 3.47.7 → web\nstage 2: node:24-alpine"]; svc [label="Web service container\nmigrate.js → server.js\nExpress API + Flutter web\nhealth: /api/health", fillcolor="#E0F2F1"]; }
+  subgraph cluster_neon { label="Neon (free, Singapore)"; style="rounded"; color="#1565C0"; fontsize=10;
+    db [label="PostgreSQL 18\n(users, rooms, seats,\nbookings)", shape=cylinder, fillcolor="#E3F2FD", color="#1565C0"]; }
+  subgraph cluster_clients { label="Clients (one Flutter codebase)"; style="rounded"; color="#B26A00"; fontsize=10;
+    apk [label="Android APK\n(arm64, 26 MB)", fillcolor="#FFF8E1", color="#B26A00"]; web [label="Web browser", fillcolor="#FFF8E1", color="#B26A00"]; lin [label="Linux desktop", fillcolor="#FFF8E1", color="#B26A00"]; }
+
+  dev -> repo [label="git push"];
+  repo -> ci [label="every push"];
+  repo -> build [label="auto-deploy\non push to main"];
+  build -> svc;
+  svc -> db [label="SQL over TLS\nDATABASE_URL (env)"];
+  apk -> svc [label="HTTPS + JSON\nBearer token"]; web -> svc [label="HTTPS"]; lin -> svc [label="HTTPS"];
+  {rank=same; apk; web; lin;}
+  {rank=same; repo; ci; rel;}
+  repo -> rel [style=dashed, label="tag"];
+}

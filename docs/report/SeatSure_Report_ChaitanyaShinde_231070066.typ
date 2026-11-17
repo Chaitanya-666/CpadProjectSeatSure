@@ -1,4 +1,5 @@
 #import "template.typ": *
+#import "@preview/chronos:0.2.1"
 
 #show: setup
 #show figure.where(kind: image): set figure(supplement: [Diagram])
@@ -32,6 +33,19 @@
 
   The app is written once in Flutter and runs on Android, in a web browser and as a Linux desktop app. All three talk to one REST API (Node.js + Express) backed by PostgreSQL. The rule that matters most, "no seat may be booked twice for overlapping times", is enforced by the database itself with an exclusion constraint, so it holds even when two phones press "Book" at the same instant. The system is deployed (Render + Neon), has 37 automated tests that run on every push, and was tested on an Android emulator, in the browser and as a Linux desktop app against the live deployment.
 ]
+
+#v(0.6em)
+
+#topic_subheading[Document control]
+#table(
+  columns: (auto, auto, 1fr),
+  align: left,
+  [*Version*], [*Date*], [*Change*],
+  [1.0], [31 Oct 2026], [First complete draft: requirements, architecture, database, core logic, screens, tests (24 pages).],
+  [1.1], [8 Nov 2026], [Live test round 4, Linux desktop build, the 8 Nov incident, room-edit bug fix.],
+  [1.2], [10 Nov 2026], [Real-phone and cross-device rounds 5 and 6; camera limitation removed. Sent for review.],
+  [1.3], [17 Nov 2026], [Restructured to the faculty's documentation format: use cases (with diagram), Deployment details after Core logic, sequence and deployment diagrams, glossary.],
+)
 
 #v(1em)
 
@@ -173,7 +187,7 @@ SeatSure turns a seat into a time-slot booking that must be *claimed in person*:
   [Validation], [zod 4.6.7], [Every request body and query is checked against a schema before any SQL runs.],
   [Auth], [jsonwebtoken 9.0.3, Node `crypto.scrypt`], [Stateless Bearer tokens; scrypt is a slow, memory-hard password hash built into Node (no native add-on).],
   [Security middleware], [helmet 8.3.0, cors 2.8.6, express-rate-limit 8.7.2], [Safe HTTP headers; cross-origin calls from the app; slows password guessing.],
-  [Database], [PostgreSQL 18.6, driver pg 8.23.1], [Relational data (rooms → seats → bookings ← users). Range types and exclusion constraints make "no overlap" a database rule. Hand-written SQL, no ORM, so every query is visible.],
+  [Database], [PostgreSQL 18 (18.7 on Neon), driver pg 8.23.1], [Relational data (rooms → seats → bookings ← users). Range types and exclusion constraints make "no overlap" a database rule. Hand-written SQL, no ORM, so every query is visible.],
   [Hosting], [Render (Docker, free), Neon (Postgres, free), both in Singapore], [Free tiers with HTTPS. Neon's free database does not expire (Render's free database does, after about 30 days).],
   [CI], [GitHub Actions], [API tests against a real Postgres, Flutter analyze + tests, and a build-and-boot check of the Docker image on every push.],
 )
@@ -258,6 +272,25 @@ Ranges are half-open, `[start, end)`. So 10:00–11:00 and 11:00–12:00 do not 
   caption: [`POST /api/bookings` in `api/src/routes/bookings.js`],
 )
 
+#figure(
+  scale(68%, reflow: true, chronos.diagram({
+    import chronos: *
+    _par("a", display-name: "Student A app")
+    _par("b", display-name: "Student B app")
+    _par("api", display-name: "Express API")
+    _par("db", display-name: "PostgreSQL")
+    _seq("a", "api", comment: [POST /api/bookings (seat A3, 4:00–5:00)])
+    _seq("b", "api", comment: [same seat, same time, same instant])
+    _seq("api", "db", comment: [A: BEGIN, lock user row, sweep, checks, INSERT])
+    _seq("api", "db", comment: [B: BEGIN, lock user row, sweep, checks, INSERT])
+    _seq("db", "api", comment: [A: row inserted, COMMIT], dashed: true)
+    _seq("db", "api", comment: [B: error 23P01 no_seat_overlap, ROLLBACK], dashed: true)
+    _seq("api", "a", comment: [201 Created: booking], dashed: true)
+    _seq("api", "b", comment: [409 seat_taken: "already booked for part of this time"], dashed: true)
+  })),
+  caption: [Sequence: two students book the same seat at the same instant. Only the database sees both inserts, so it decides.],
+)
+
 The whole booking runs in one transaction (`withTransaction` in `api/src/db.js`), so any error rolls everything back. Two details matter:
 
 - *Row lock on the student* (`SELECT … FOR UPDATE`). The "at most 3 upcoming bookings" rule is a count followed by an insert, which has the same race as above. Locking the student's own `users` row makes two parallel requests from the same student run one after the other. Removing the lock made the test "enforces the per-student limit even for parallel requests" fail 3 times out of 3.
@@ -284,12 +317,35 @@ This one statement runs at the start of every request that reads or changes book
 
 Each seat's `qr_token` is random (`seat_` + 12 random bytes in base64url), so it cannot be guessed from the label. The student's app sends only the scanned token to `POST /api/checkin`. The server finds *that student's* `booked` booking *for that seat* whose window `[start − 10 min, start + 15 min)` contains now, locks it with `FOR UPDATE` (so a double tap cannot check in twice), and sets `checked_in`. If nothing matches, it works out the most useful reason, in this order: already checked in, too early (with the opening time), wrong seat (naming the right seat and room), check-in closed (it became a no-show), or no booking. An admin can issue a new token for a seat; the old printed code then stops working at once (tested).
 
+#figure(
+  scale(68%, reflow: true, chronos.diagram({
+    import chronos: *
+    _par("s", display-name: "Student")
+    _par("app", display-name: "Flutter app")
+    _par("api", display-name: "Express API")
+    _par("db", display-name: "PostgreSQL")
+    _seq("s", "app", comment: [scan the QR on desk A3])
+    _seq("app", "api", comment: [POST /api/checkin {qrToken}])
+    _seq("api", "db", comment: [seat with this qr_token?])
+    _seq("api", "db", comment: [my booked booking for that seat, window open now, FOR UPDATE])
+    _seq("api", "db", comment: [UPDATE status = checked_in])
+    _seq("api", "app", comment: [200: booking (checked_in)], dashed: true)
+    _seq("app", "s", comment: ["Checked in at A3"], dashed: true)
+  })),
+  caption: [Sequence: QR check-in. If no booking matches, the API answers 409 with the most useful reason instead.],
+)
+
 == Time rules
 
 `api/src/lib/slots.js` checks: start and end on the 15-minute grid, length 30–240 minutes, start not before the current 15-minute block (so at 10:07 you may still book 10:00), and at most 7 days ahead. All rules come from environment variables and are served to the app by `GET /api/config`, so the app's time pickers offer exactly what the server accepts.
 
 // ============================================================================
 = Deployment details
+
+#figure(
+  image("diagrams/deployment.svg", width: 100%),
+  caption: [Deployment: from a push on the laptop to the live service on Render and the database on Neon],
+)
 
 #set par(justify: false)
 #table(
@@ -570,6 +626,27 @@ Local demo logins (public, only valid on a local database): `admin@seatsure.app`
   [QR scanning], [`app/lib/screens/scan_screen.dart`],
   [Tests], [`api/test/`, `app/test/`],
   [Deployment], [`Dockerfile`, `render.yaml`, `.github/workflows/ci.yml`],
+)
+
+= Appendix C: Glossary
+
+#table(
+  columns: (auto, 1fr),
+  align: left,
+  [*Term*], [*Meaning in this project*],
+  [API / REST], [The Express server's set of HTTP endpoints under `/api`, exchanging JSON.],
+  [Exclusion constraint], [A PostgreSQL rule that forbids two rows for which all listed comparisons are true; here the same seat (`=`) and overlapping slots (`&&`).],
+  [`tstzrange`], [A range of timestamps with time zone, stored half-open as `[start, end)`.],
+  [GiST, `btree_gist`], [The index type behind range checks; the extension lets it also handle `=` on integers.],
+  [Transaction], [A group of SQL statements that all commit or all roll back.],
+  [`FOR UPDATE`], [Locks the selected rows until the transaction ends, so parallel requests run one after another.],
+  [Lazy expiry], [No-shows are marked when the next request arrives, not by a timer.],
+  [JWT], [A signed login token holding the user id and role; expires after 7 days.],
+  [scrypt], [A slow, memory-hard password hash with a random salt per password.],
+  [zod], [Schema validation of every request body and query.],
+  [ChangeNotifier / Provider], [Flutter state classes that redraw the widgets watching them when data changes.],
+  [Cold start], [The 30–60 s a sleeping free Render service needs to wake on the first request.],
+  [CI], [Continuous integration: GitHub Actions runs the tests and the Docker build on every push.],
 )
 
 #make_ender()
