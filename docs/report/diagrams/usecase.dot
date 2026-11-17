@@ -1,0 +1,44 @@
+// Use-case diagram for the report (Section 2.1). Render: dot -Tsvg usecase.dot -o usecase.svg
+digraph U {
+  rankdir=LR; newrank=true; nodesep=0.22; ranksep=0.7; splines=true;
+  fontname="DejaVu Sans";
+  node [fontname="DejaVu Sans", fontsize=10.5];
+  edge [fontname="DejaVu Sans", fontsize=8.5, color="#555555", arrowhead=none];
+
+  student [label="«actor»\nStudent", shape=box, style="rounded,filled,bold", fillcolor="#E0F2F1", color="#00796B"];
+  admin   [label="«actor»\nLibrarian\n(admin)", shape=box, style="rounded,filled,bold", fillcolor="#FFF8E1", color="#B26A00"];
+
+  subgraph cluster_sys {
+    label="SeatSure"; labeljust="c"; fontsize=12; style="rounded"; color="#00796B";
+    node [shape=ellipse, style=filled, fillcolor="#F4F8F7", color="#00796B", width=2.3];
+    uc1  [label="UC-1  Sign up / log in", fillcolor="#FFFFFF"];
+    uc2  [label="UC-2  View rooms and\nlive seat map"];
+    uc3  [label="UC-3  Book a seat\nfor a time slot"];
+    uc4  [label="UC-4  Check in by\nscanning seat QR"];
+    uc5  [label="UC-5  Cancel a booking"];
+    uc6  [label="UC-6  Leave early"];
+    uc7  [label="UC-7  View my bookings\nand history"];
+    uc13 [label="UC-13  Release expired\nno-show bookings\n(automatic, lazy)", fillcolor="#FFEBEE", color="#C62828"];
+    uc8  [label="UC-8  View dashboard\n(occupancy, no-show rate)", fillcolor="#FFF8E1", color="#B26A00"];
+    uc9  [label="UC-9  View a day's bookings", fillcolor="#FFF8E1", color="#B26A00"];
+    uc10 [label="UC-10  Manage rooms\n(add, hours, open/close)", fillcolor="#FFF8E1", color="#B26A00"];
+    uc11 [label="UC-11  Manage seats and\nprint QR sheet", fillcolor="#FFF8E1", color="#B26A00"];
+    uc12 [label="UC-12  Issue a new QR code", fillcolor="#FFF8E1", color="#B26A00"];
+    {rank=same; uc1; uc2; uc3; uc4; uc5; uc6; uc7;}
+    {rank=same; uc13; uc8; uc9; uc10; uc11; uc12;}
+    // fix vertical order inside each column
+    edge [style=invis];
+    uc1 -> uc2 -> uc3 -> uc4 -> uc5 -> uc6 -> uc7;
+    uc13 -> uc8 -> uc9 -> uc10 -> uc11 -> uc12;
+  }
+
+  student -> {uc1 uc2 uc3 uc4 uc5 uc6 uc7};
+  {uc8 uc9 uc10 uc11 uc12} -> admin;
+  uc1 -> admin [constraint=false];
+
+  edge [style=dashed, arrowhead=vee, color="#C62828", fontcolor="#C62828"];
+  uc2 -> uc13 [label="«include»"];
+  uc3 -> uc13 [label="«include»"];
+  uc4 -> uc13 [label="«include»"];
+  uc12 -> uc11 [label="«extend»", color="#555555", fontcolor="#555555"];
+}

@@ -1,6 +1,7 @@
 #import "template.typ": *
 
 #show: setup
+#show figure.where(kind: image): set figure(supplement: [Diagram])
 
 #make_title()
 
@@ -72,7 +73,7 @@ SeatSure turns a seat into a time-slot booking that must be *claimed in person*:
 #table(
   columns: (1fr, 1fr),
   align: left,
-  [*In scope*], [*Out of scope (future work, Section 13)*],
+  [*In scope*], [*Out of scope (future work: Limitations and future scope)*],
   [Student sign-up and login; admin (librarian) role],
   [College single sign-on, email verification, password reset],
   [Rooms with opening hours; seats with labels, power sockets, QR codes],
@@ -88,14 +89,40 @@ SeatSure turns a seat into a time-slot booking that must be *claimed in person*:
 // ============================================================================
 = Requirements
 
-== Users
+== Use cases
+
+#topic_subheading[Actors]
 
 #table(
   columns: (1fr, 3fr),
   align: left,
-  [*User*], [*What they need*],
+  [*Actor*], [*What they need*],
   [Student], [See free seats, book one, check in at the desk, leave early or cancel, see their history.],
   [Librarian (admin)], [Watch live occupancy, see who booked what, add rooms and seats, print and replace QR codes, see no-show rates and busy hours.],
+)
+
+#figure(
+  image("diagrams/usecase.svg", width: 100%),
+  caption: [Use-case diagram. UC-13 has no actor of its own: it runs inside other requests (see Lazy no-show release).],
+)
+
+#table(
+  columns: (auto, auto, 1fr, auto),
+  align: left,
+  [*ID*], [*Use case*], [*Main flow (and what can go wrong)*], [*FR*],
+  [UC-1], [Sign up / log in], [Enter name, email, password; the server returns a token that the app saves. Wrong password or unknown email gets the same message; too many attempts get 429.], [FR-1],
+  [UC-2], [View rooms and live seat map], [Pick a room, a day, a start time and a length; every seat shows as free, taken or mine, refreshed every 15 s.], [FR-2, FR-3],
+  [UC-3], [Book a seat], [Tap a free seat and confirm. Refused with a clear message if the seat was just taken, the slot breaks a time rule, or the student already holds 3 bookings or another seat at that time.], [FR-4, FR-5],
+  [UC-4], [Check in by QR], [At the desk, scan the seat's QR (or type the code under it) between start − 10 min and start + 15 min. Wrong seat, too early, too late and no booking each get their own message.], [FR-6],
+  [UC-5], [Cancel a booking], [Before checking in; the seat is free again at once.], [FR-8],
+  [UC-6], [Leave early], [After checking in; the booking ends now and the rest of the slot is free for others.], [FR-8],
+  [UC-7], [View my bookings and history], [Upcoming bookings with a countdown to the check-in deadline; past bookings with their outcome.], [FR-9],
+  [UC-8], [View dashboard], [Live counts (in use, waiting, free), per-room numbers, no-show rate, busiest hours.], [FR-10],
+  [UC-9], [View a day's bookings], [Every booking of a chosen day with the student's name and status.], [FR-11],
+  [UC-10], [Manage rooms], [Add a room with hours; open or close it.], [FR-12],
+  [UC-11], [Manage seats, QR sheet], [Add seats in bulk, disable a seat, show the printable QR sheet.], [FR-12],
+  [UC-12], [Issue a new QR code], [Replace one seat's code; the old printed code stops working at once.], [FR-12],
+  [UC-13], [Release no-shows], [Automatic: before any request reads or changes bookings, bookings not checked in by start + 15 min become no-shows.], [FR-7],
 )
 
 == Functional requirements
@@ -173,8 +200,8 @@ The system has three tiers:
 
 + The student taps A3 and confirms. `BookingsModel.book()` sends `POST /api/bookings` with `{seatId, start, end}` (times converted to UTC ISO strings).
 + `requireAuth` reads the Bearer token, verifies its signature and expiry, and loads the user from the database.
-+ `noShowSweep` marks any expired, unclaimed bookings as no-shows (Section 6.3).
-+ The route validates the body with zod and the time rules with `validateSlot`, then runs the booking transaction (Section 6.1).
++ `noShowSweep` marks any expired, unclaimed bookings as no-shows (see Lazy no-show release).
++ The route validates the body with zod and the time rules with `validateSlot`, then runs the booking transaction (see Core logic).
 + PostgreSQL inserts the row, or rejects it with an exclusion-constraint error that the error handler turns into `409 seat_taken`.
 + The app shows "Booked A3. Check in now, before 4:15 PM", refreshes My bookings, and switches to that tab.
 
@@ -193,7 +220,7 @@ The system has three tiers:
   [`users`], [Students and admins. Email is unique ignoring case (a unique index on `lower(email)`). `role` is checked to be `student` or `admin`. Only the scrypt hash of the password is stored.],
   [`rooms`], [A reading hall or zone with opening hours stored as local times; `CHECK (open_time < close_time)`.],
   [`seats`], [Belongs to a room; label unique within the room; `qr_token` is a random secret printed as the seat's QR code (unique across all seats).],
-  [`bookings`], [One row = one seat held for one time range. `slot` is a `tstzrange` (a range of timestamps with time zone). `status` is one of five values (Section 6.2).],
+  [`bookings`], [One row = one seat held for one time range. `slot` is a `tstzrange` (a range of timestamps with time zone). `status` is one of five values (see Booking status).],
 )
 
 #topic_subheading[The constraint that prevents double booking]
@@ -251,7 +278,7 @@ The requirement "release the seat 15 minutes after the start if nobody checked i
  WHERE status = 'booked'
    AND lower(slot) + make_interval(mins => $1) <= now()   -- $1 = 15", lang: "sql")
 
-This one statement runs at the start of every request that reads or changes bookings (the `noShowSweep` middleware, and again inside the booking transaction). Whoever asks next, the expired bookings are released first, so every answer is correct even if the server slept for hours. It is cheap thanks to the partial index. The test "releases a no-show lazily" inserts a booking that started 20 minutes ago, makes one unrelated request, and checks that the row became `no_show` and the seat could be booked by someone else. The same thing is visible in the app (Fig. 12).
+This one statement runs at the start of every request that reads or changes bookings (the `noShowSweep` middleware, and again inside the booking transaction). Whoever asks next, the expired bookings are released first, so every answer is correct even if the server slept for hours. It is cheap thanks to the partial index. The test "releases a no-show lazily" inserts a booking that started 20 minutes ago, makes one unrelated request, and checks that the row became `no_show` and the seat could be booked by someone else. The same thing is visible in the app (Fig. 11).
 
 == QR check-in
 
@@ -260,6 +287,33 @@ Each seat's `qr_token` is random (`seat_` + 12 random bytes in base64url), so it
 == Time rules
 
 `api/src/lib/slots.js` checks: start and end on the 15-minute grid, length 30–240 minutes, start not before the current 15-minute block (so at 10:07 you may still book 10:00), and at most 7 days ahead. All rules come from environment variables and are served to the app by `GET /api/config`, so the app's time pickers offer exactly what the server accepts.
+
+// ============================================================================
+= Deployment details
+
+#set par(justify: false)
+#table(
+  columns: (1fr, 2.5fr),
+  align: left,
+  [*Piece*], [*How*],
+  [Docker image], [Two stages. Stage 1 (Debian) installs Flutter 3.47.7 as a non-root user and runs `flutter build web`. Stage 2 (`node:24-alpine`) installs only production dependencies, copies the API and the built web files, runs as the `node` user, applies migrations and starts the server. The prebuilt Flutter images were not used because they lag behind and failed the app's Dart version constraint.],
+  [Render], [`render.yaml` Blueprint: free Docker web service in Singapore, health check on `/api/health`, auto-deploy on every push to `main`. `DATABASE_URL` is entered in the dashboard; `JWT_SECRET` is generated by Render.],
+  [Neon], [Free PostgreSQL 18 project in Singapore (the same region as the API, because each request makes several queries). Seeded once from the laptop with private passwords.],
+  [Android], [`flutter build apk --release --split-per-abi --dart-define=API_BASE_URL=https://seatsure-9hn0.onrender.com` gives a 26 MB arm64 APK.],
+  [Web], [Built inside the Docker image (`flutter build web --release`) and served by the same Express server with `express.static`, so the web app and the API share one address and need no CORS setup.],
+  [Linux desktop], [`flutter build linux --release`. The server address is set at build time (`--dart-define=API_BASE_URL=…`) or at run time on the app's Server screen; Fig. 24 shows it running against the live server.],
+  [Configuration], [Everything that differs between laptop and cloud comes from environment variables: `DATABASE_URL`, `DATABASE_SSL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `APP_TIMEZONE`, and the booking rules (`SLOT_STEP_MINUTES`, `MIN_SLOT_MINUTES`, `MAX_SLOT_MINUTES`, `BOOKING_HORIZON_DAYS`, `MAX_ACTIVE_BOOKINGS`, `CHECKIN_EARLY_MINUTES`, `CHECKIN_GRACE_MINUTES`). The server refuses to start in production without `JWT_SECRET`.],
+  [Release], [Git tag `v1.0.1` with a GitHub release holding the APK, this report and the source archive.],
+)
+
+#set par(justify: true)
+#note_box(title: "Free-tier behaviour")[
+  Render's free service sleeps after 15 minutes without requests; the next request waits 30–60 seconds while it wakes. The app allows up to 60 seconds per request for this reason, and before a demo `scripts/wake.sh` calls `/api/health` until it reports the database up. That one request wakes both Render and Neon, because the health route runs `SELECT now()`. Lazy no-show release (Core logic) is what keeps the booking rules correct across these sleeps.
+]
+
+#warn_box(title: "Incident on 8 Nov: the service would not wake")[
+  After a week without traffic, every request hung for about a minute and was then reset, also from monitoring nodes in Europe, so it was not the local network. Render's status page was green, Neon answered directly in 1.8 s, and the runtime logs were empty, so no request reached the app. *Restart service* did not help. *Deploy latest commit* (the same commit, about 3 minutes with the build cache) brought it back. Lesson for the demo: run `scripts/wake.sh` well ahead, and if it gives up, redeploy instead of waiting.
+]
 
 // ============================================================================
 = API reference
@@ -441,7 +495,7 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [1. Emulator], [Pixel AVD, Android 16, release APK against the API on the laptop; web build in Chromium], [Every student and admin flow worked. A seat booked on Android showed as taken on the web build for another student. Found 3 bugs (below).],
   [2. Live], [Render + Neon; the student on the laptop browser (Brave, dark theme)], [Booked D1, checked in at 3:54 PM inside the 3:45–4:00 window; the admin dashboard updated live. Found 1 bug (below).],
   [3. Final], [App 1.0.1 on the emulator, fresh demo data, light and dark themes], [All flows in Figs. 1–20 including wrong seat, leave early and a lazy no-show.],
-  [4. Live, 8 Nov], [Render + Neon after a week idle; Linux desktop release build], [The live service did not wake (Section 12). After a redeploy: web app, admin and student login, rooms and stats all worked, and the public demo password was refused. Linux desktop build shown in Fig. 24. Found 1 bug (below).],
+  [4. Live, 8 Nov], [Render + Neon after a week idle; Linux desktop release build], [The live service did not wake (see Deployment details). After a redeploy: web app, admin and student login, rooms and stats all worked, and the public demo password was refused. Linux desktop build shown in Fig. 24. Found 1 bug (below).],
   [5. Real phone, 10 Nov], [Release APK 1.0.1 on a physical Android phone, live server, camera scanning QR codes shown on the laptop screen], [Sign up, rooms, seat map, overlap refused, and with the camera: wrong seat refused, non-SeatSure code refused, checked in, second scan refused; leave early gave Completed. No bugs. Screenshots and a screen recording are in `docs/evidence/2026-11-10-phone/`.],
   [6. Cross-device, 10 Nov], [Librarian on the Linux desktop build, student on the phone, a second student through the API; live server], [Second student's seat shown as taken; cancel; check-in and leave early; dashboard live (1 in use, 1 waiting); room switched off and on with its details kept; new QR for A4 made the old code useless; too early refused; the unattended booking became a no-show at start + 15 min. No bugs. Evidence in `docs/evidence/2026-11-10-admin/`.],
 )
@@ -459,27 +513,6 @@ GitHub Actions runs three jobs on every push (`.github/workflows/ci.yml`):
   [First Render deploy failed], [Running as root, `tar` tried to restore file owners, which Render's builder forbids.], [Flutter built as a normal user inside Docker.],
   [Closing a room would erase its details], [The edit route reused the create schema with `.partial()`. In zod 4, `.default()` still fills in missing fields inside `.partial()`, so `{ isActive: false }` also sent an empty description and floor and the default hours 08:00–22:00.], [Separate edit schema without defaults (`COALESCE` then keeps the old values); regression test. Found while reading the code before a live test; no live data was affected.],
 )
-
-// ============================================================================
-= Deployment
-
-#table(
-  columns: (1fr, 2.5fr),
-  align: left,
-  [*Piece*], [*How*],
-  [Docker image], [Two stages. Stage 1 (Debian) installs Flutter 3.47.7 as a non-root user and runs `flutter build web`. Stage 2 (`node:24-alpine`) installs only production dependencies, copies the API and the built web files, runs as the `node` user, applies migrations and starts the server. The prebuilt Flutter images were not used because they lag behind and failed the app's Dart version constraint.],
-  [Render], [`render.yaml` Blueprint: free Docker web service in Singapore, health check on `/api/health`, auto-deploy on every push to `main`. `DATABASE_URL` is entered in the dashboard; `JWT_SECRET` is generated by Render.],
-  [Neon], [Free PostgreSQL 18 project in Singapore (the same region as the API, because each request makes several queries). Seeded once from the laptop with private passwords.],
-  [Android], [`flutter build apk --release --split-per-abi --dart-define=API_BASE_URL=https://seatsure-9hn0.onrender.com` gives a 26 MB arm64 APK.],
-)
-
-#note_box(title: "Free-tier behaviour")[
-  Render's free service sleeps after 15 minutes without requests; the next request waits 30–60 seconds while it wakes. The app allows up to 60 seconds per request for this reason, and before a demo `scripts/wake.sh` calls `/api/health` until it reports the database up. That one request wakes both Render and Neon, because the health route runs `SELECT now()`. Lazy no-show release (Section 6.3) is what keeps the booking rules correct across these sleeps.
-]
-
-#warn_box(title: "Incident on 8 Nov: the service would not wake")[
-  After a week without traffic, every request hung for about a minute and was then reset, also from monitoring nodes in Europe, so it was not the local network. Render's status page was green, Neon answered directly in 1.8 s, and the runtime logs were empty, so no request reached the app. *Restart service* did not help. *Deploy latest commit* (the same commit, about 3 minutes with the build cache) brought it back. Lesson for the demo: run `scripts/wake.sh` well ahead, and if it gives up, redeploy instead of waiting.
-]
 
 // ============================================================================
 = Limitations and future scope
